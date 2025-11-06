@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "599809406845",
+    "project_id": "encryptionapps-4dd39",
+    "storage_bucket": "encryptionapps-4dd39.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:599809406845:android:55dbb26399f27fd346be14",
+        "android_client_info": {
+          "package_name": "com.example.encryptionapps"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "599809406845-51kds3o4fus07brekr85v352e4j2a368.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.encryptionapps",
+            "certificate_hash": "3a2c6cf00478fe60c9aaec75460d5e61fadf5e51"
+          }
+        },
+        {
+          "client_id": "599809406845-7u2ggt90jcqhem63c69gu5bq9p90ssrb.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCEsq05Bc2r1IgYwlSnrcJ5DfSPy3GKrGU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "599809406845-7u2ggt90jcqhem63c69gu5bq9p90ssrb.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
