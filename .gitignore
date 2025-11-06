@@ -1,4 +1,6 @@
-# Miscellaneous
+# ========================
+# 🧩 GENERAL IGNORES
+# ========================
 *.class
 *.log
 *.pyc
@@ -12,18 +14,24 @@
 .swiftpm/
 migrate_working_dir/
 
-# IntelliJ related
+# ========================
+# 🧩 IDE / EDITOR FILES
+# ========================
+# IntelliJ / Android Studio
 *.iml
 *.ipr
 *.iws
 .idea/
+misc.xml
+deploymentTargetDropDown.xml
+render.experimental.xml
 
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
+# VS Code
 #.vscode/
 
-# Flutter/Dart/Pub related
+# ========================
+# 🧩 FLUTTER / DART / PUB
+# ========================
 **/doc/api/
 **/ios/Flutter/.last_build_id
 .dart_tool/
@@ -31,15 +39,34 @@ migrate_working_dir/
 .flutter-plugins-dependencies
 .pub-cache/
 .pub/
-/build/
+build/
 
-# Symbolication related
+# ========================
+# 🧩 ANDROID / GRADLE FILES
+# ========================
+.gradle/
+local.properties
+captures/
+.externalNativeBuild/
+.cxx/
+*.aab
+*.apk
+output-metadata.json
+
+# ========================
+# 🧩 OBFUSCATION / SYMBOLICATION
+# ========================
 app.*.symbols
-
-# Obfuscation related
 app.*.map.json
 
-# Android Studio will place build artifacts here
-/android/app/debug
-/android/app/profile
-/android/app/release
+# ========================
+# 🧩 KEYSTORE / FIREBASE / ETC
+# ========================
+*.jks
+*.keystore
+google-services.json
+
+# ========================
+# 🧩 ANDROID PROFILING
+# ========================
+*.hprof
