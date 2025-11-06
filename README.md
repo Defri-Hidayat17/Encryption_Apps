@@ -1,6 +1,6 @@
 # 🔐 Encryption Apps  
-**DEFRI LUGAS HIDAYAT**
-**Universitas Pelita Bangsa — Teknik Informatika**  
+
+**DEFRI LUGAS HIDAYAT — Universitas Pelita Bangsa — Teknik Informatika**  
 _Aplikasi Enkripsi & Dekripsi berbasis Flutter_
 
 ---
