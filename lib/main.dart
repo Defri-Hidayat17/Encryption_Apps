@@ -8,7 +8,7 @@ import 'splash_screen.dart';
 import 'onboarding_page.dart';
 import 'home_page.dart';
 import 'caesarcipher.dart';
-import 'description_page.dart';
+import 'file_crypto_page.dart';
 import 'profile_page.dart';
 import 'loginpage.dart';
 import 'biodata_page.dart';
@@ -87,7 +87,7 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
   int _currentIndex = 1;
 
   final List<Widget> _pages = [
-    const DescriptionPage(),
+    const FileCryptoPage(),
     const CaesarCipherPage(),
     const ProfilePage(),
   ];

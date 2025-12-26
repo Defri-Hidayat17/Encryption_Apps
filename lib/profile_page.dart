@@ -8,7 +8,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter/services.dart'; // Import ini untuk SystemChrome
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -36,7 +36,26 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   void initState() {
     super.initState();
+    // Atur status bar saat halaman pertama kali dimuat
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Colors.white, // Status bar wajib putih
+        statusBarIconBrightness:
+            Brightness.dark, // Ikon gelap agar terlihat di status bar putih
+      ),
+    );
     _initDatabase().then((_) => _loadBiodata());
+  }
+
+  @override
+  void dispose() {
+    _namaController.dispose();
+    _tanggalController.dispose();
+    _teleponController.dispose();
+    _alamatController.dispose();
+    _pekerjaanController.dispose();
+    _tentangController.dispose();
+    super.dispose();
   }
 
   Future<void> _initDatabase() async {
@@ -353,8 +372,8 @@ class _ProfilePageState extends State<ProfilePage> {
         readOnly: onTap != null,
         onTap: onTap,
         maxLines: maxLines,
-        keyboardType: keyboardType, // 🟢 ditambahkan
-        inputFormatters: inputFormatters, // 🟢 ditambahkan
+        keyboardType: keyboardType,
+        inputFormatters: inputFormatters,
         decoration: InputDecoration(
           labelText: label,
           labelStyle: const TextStyle(color: Colors.black87),
@@ -407,13 +426,21 @@ class _ProfilePageState extends State<ProfilePage> {
       margin: const EdgeInsets.only(bottom: 10),
       child: DropdownButtonFormField<String>(
         value: _genderValue,
-        onChanged: (val) => setState(() => _genderValue = val!),
+        onChanged:
+            _isEditing
+                ? (val) => setState(() => _genderValue = val!)
+                : null, // Disable if not editing
         items: const [
           DropdownMenuItem(value: 'Laki-laki', child: Text('Laki-laki')),
           DropdownMenuItem(value: 'Perempuan', child: Text('Perempuan')),
         ],
         decoration: InputDecoration(
           labelText: "Jenis Kelamin",
+          filled: true,
+          fillColor:
+              _isEditing
+                  ? Colors.white
+                  : Colors.grey[200], // Adjust fill color based on editing mode
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
           contentPadding: const EdgeInsets.symmetric(
             vertical: 10,
@@ -425,45 +452,46 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   @override
-  void dispose() {
-    _namaController.dispose();
-    _tanggalController.dispose();
-    _teleponController.dispose();
-    _alamatController.dispose();
-    _pekerjaanController.dispose();
-    _tentangController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
+    // Pastikan status bar style diterapkan kembali setiap kali build dipanggil
+    // Ini penting agar style tetap konsisten saat kembali dari halaman lain
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Colors.white, // Status bar wajib putih
+        statusBarIconBrightness:
+            Brightness.dark, // Ikon gelap agar terlihat di status bar putih
+      ),
+    );
+
     return Scaffold(
       backgroundColor: const Color(0xFFE6E6E6),
-      body: Column(
-        children: [
-          // HEADER
-          Container(
-            width: double.infinity,
-            height: 90,
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFF041413), Color(0xFF093B2B)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black26,
-                  blurRadius: 6,
-                  offset: Offset(0, 3),
+      body: SafeArea(
+        // SafeArea membungkus seluruh body
+        child: Column(
+          children: [
+            // ✅ HEADER (Disesuaikan persis seperti permintaan Anda dari HomePage)
+            Container(
+              width: double.infinity,
+              height: 58, // Tinggi header disesuaikan
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFF041413), Color(0xFF093B2B)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
-              ],
-            ),
-            child: Padding(
-              padding: const EdgeInsets.only(top: 32),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black26,
+                    blurRadius: 6,
+                    offset: Offset(0, 3),
+                  ),
+                ],
+              ),
               child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
+                crossAxisAlignment:
+                    CrossAxisAlignment
+                        .center, // Pusatkan konten secara vertikal
                 children: [
                   SvgPicture.asset(
                     'assets/images/logoenkripsiapps.svg',
@@ -471,7 +499,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                   const SizedBox(width: 12),
                   const Text(
-                    'PROFIL',
+                    'PROFIL', // Teks diubah menjadi PROFIL
                     style: TextStyle(
                       fontFamily: 'Orbitron',
                       fontSize: 15,
@@ -490,326 +518,343 @@ class _ProfilePageState extends State<ProfilePage> {
                 ],
               ),
             ),
-          ),
-
-          // BODY SCROLLABLE
-          Expanded(
-            child: SingleChildScrollView(
-              physics:
-                  const BouncingScrollPhysics(), // 🔹 biar smooth (efek iPhone)
-              padding: const EdgeInsets.fromLTRB(
-                20,
-                20,
-                20,
-                80,
-              ), // 🔹 padding bawah biar gak ketabrak navbar
-              child: Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(18),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    // Title + edit toggler (tidak diubah)
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          "Biodata Anda",
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF041413),
+            // BODY SCROLLABLE
+            Expanded(
+              child: SingleChildScrollView(
+                physics:
+                    const BouncingScrollPhysics(), // 🔹 biar smooth (efek iPhone)
+                padding: const EdgeInsets.fromLTRB(
+                  20,
+                  20,
+                  20,
+                  80,
+                ), // 🔹 padding bawah biar gak ketabrak navbar
+                child: Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(18),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      // Title + edit toggler (tidak diubah)
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            "Biodata Anda",
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF041413),
+                            ),
                           ),
-                        ),
-                        InkWell(
-                          onTap: () => setState(() => _isEditing = !_isEditing),
-                          child: Row(
-                            children: const [
-                              Text(
-                                "Edit",
-                                style: TextStyle(
-                                  color: Colors.teal,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              SizedBox(width: 4),
-                              Icon(Icons.edit, color: Colors.teal, size: 18),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 15),
-
-                    // FOTO PROFIL + ikon aksi (ikon diberi padding supaya tidak nabrak)
-                    Column(
-                      children: [
-                        CircleAvatar(
-                          radius: 60,
-                          backgroundColor: Colors.grey[200],
-                          backgroundImage:
-                              _imageFile != null
-                                  ? FileImage(_imageFile!)
-                                  : (_biodata?['foto'] != null &&
-                                      _biodata!['foto'].toString().isNotEmpty)
-                                  ? FileImage(File(_biodata!['foto']))
-                                  : null,
-                          child:
-                              (_imageFile == null &&
-                                      (_biodata?['foto'] == null ||
-                                          _biodata!['foto'].toString().isEmpty))
-                                  ? const Icon(
-                                    Icons.account_circle,
-                                    size: 60,
-                                    color: Colors.grey,
-                                  )
-                                  : null,
-                        ),
-
-                        // Jarak ekstra agar ikon tidak nabrak lingkaran
-                        if (_isEditing)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 14, bottom: 8),
+                          InkWell(
+                            onTap:
+                                () => setState(() => _isEditing = !_isEditing),
                             child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                // Kamera
-                                InkWell(
-                                  onTap: () => _pickImage(ImageSource.camera),
-                                  borderRadius: BorderRadius.circular(10),
-                                  child: Container(
-                                    padding: const EdgeInsets.all(8),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(color: Colors.black12),
-                                    ),
-                                    child: const Icon(
-                                      Icons.camera_alt,
-                                      color: Colors.green,
-                                      size: 24,
-                                    ),
+                              children: const [
+                                Text(
+                                  "Edit",
+                                  style: TextStyle(
+                                    color: Colors.teal,
+                                    fontWeight: FontWeight.w600,
                                   ),
                                 ),
-                                const SizedBox(width: 12),
-                                // Galeri
-                                InkWell(
-                                  onTap: () => _pickImage(ImageSource.gallery),
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: Container(
-                                    padding: const EdgeInsets.all(8),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(color: Colors.black12),
-                                    ),
-                                    child: const Icon(
-                                      Icons.photo_library,
-                                      color: Colors.blueAccent,
-                                      size: 24,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                // File manager (ambil file dari storage)
-                                InkWell(
-                                  onTap: _pickFromFileManager,
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: Container(
-                                    padding: const EdgeInsets.all(8),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(color: Colors.black12),
-                                    ),
-                                    child: const Icon(
-                                      Icons.folder_open,
-                                      color: Colors.teal,
-                                      size: 24,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                // Hapus (hapus file + update DB)
-                                InkWell(
-                                  onTap: _deleteImage,
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: Container(
-                                    padding: const EdgeInsets.all(8),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(color: Colors.black12),
-                                    ),
-                                    child: const Icon(
-                                      Icons.delete,
-                                      color: Colors.redAccent,
-                                      size: 24,
-                                    ),
-                                  ),
-                                ),
+                                SizedBox(width: 4),
+                                Icon(Icons.edit, color: Colors.teal, size: 18),
                               ],
                             ),
                           ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    // MODE VIEW (NORMAL) — sesuai urutan yg kamu minta
-                    if (!_isEditing) ...[
-                      // Pekerjaan (bold)
-                      Text(
-                        _pekerjaanController.text.isNotEmpty
-                            ? _pekerjaanController.text
-                            : '',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
-                          color: Color(0xFF041413),
-                        ),
+                        ],
                       ),
-                      const SizedBox(height: 6),
-                      // Tentang Saya (multiline plain)
-                      Text(
-                        _tentangController.text.isNotEmpty
-                            ? _tentangController.text
-                            : '',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Colors.black87,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 10),
-                      const Divider(color: Colors.black26, thickness: 0.5),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 15),
 
-                      // Nama, TTL, Jenis Kelamin (urut)
-                      _buildReadOnly("Nama", _namaController.text),
-                      _buildReadOnly("Tanggal Lahir", _tanggalController.text),
-                      _buildReadOnly("Jenis Kelamin", _genderValue),
+                      // FOTO PROFIL + ikon aksi (ikon diberi padding supaya tidak nabrak)
+                      Column(
+                        children: [
+                          CircleAvatar(
+                            radius: 60,
+                            backgroundColor: Colors.grey[200],
+                            backgroundImage:
+                                _imageFile != null
+                                    ? FileImage(_imageFile!)
+                                    : (_biodata?['foto'] != null &&
+                                        _biodata!['foto'].toString().isNotEmpty)
+                                    ? FileImage(File(_biodata!['foto']))
+                                    : null,
+                            child:
+                                (_imageFile == null &&
+                                        (_biodata?['foto'] == null ||
+                                            _biodata!['foto']
+                                                .toString()
+                                                .isEmpty))
+                                    ? const Icon(
+                                      Icons.account_circle,
+                                      size: 60,
+                                      color: Colors.grey,
+                                    )
+                                    : null,
+                          ),
 
-                      // Telepon & Alamat (tampil juga di view)
-                      _buildReadOnly("Telepon", _teleponController.text),
-                      _buildReadOnly("Alamat", _alamatController.text),
-                    ],
-
-                    // MODE EDIT: tampilkan form lengkap (pekerjaan & tentang disembunyikan di atas foto)
-                    if (_isEditing) ...[
-                      _buildTextField("Nama", _namaController, enabled: true),
-                      _buildTextField(
-                        "Tanggal Lahir",
-                        _tanggalController,
-                        enabled: true,
-                        onTap: _pickDate,
-                      ),
-                      _buildDropdownGender(),
-                      _buildTextField(
-                        "Telepon",
-                        _teleponController,
-                        enabled: true,
-                        keyboardType: TextInputType.number,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly,
+                          // Jarak ekstra agar ikon tidak nabrak lingkaran
+                          if (_isEditing)
+                            Padding(
+                              padding: const EdgeInsets.only(
+                                top: 14,
+                                bottom: 8,
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  // Kamera
+                                  InkWell(
+                                    onTap: () => _pickImage(ImageSource.camera),
+                                    borderRadius: BorderRadius.circular(10),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(
+                                          color: Colors.black12,
+                                        ),
+                                      ),
+                                      child: const Icon(
+                                        Icons.camera_alt,
+                                        color: Colors.green,
+                                        size: 24,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  // Galeri
+                                  InkWell(
+                                    onTap:
+                                        () => _pickImage(ImageSource.gallery),
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(
+                                          color: Colors.black12,
+                                        ),
+                                      ),
+                                      child: const Icon(
+                                        Icons.photo_library,
+                                        color: Colors.blueAccent,
+                                        size: 24,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  // File manager (ambil file dari storage)
+                                  InkWell(
+                                    onTap: _pickFromFileManager,
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(
+                                          color: Colors.black12,
+                                        ),
+                                      ),
+                                      child: const Icon(
+                                        Icons.folder_open,
+                                        color: Colors.teal,
+                                        size: 24,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  // Hapus (hapus file + update DB)
+                                  InkWell(
+                                    onTap: _deleteImage,
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(
+                                          color: Colors.black12,
+                                        ),
+                                      ),
+                                      child: const Icon(
+                                        Icons.delete,
+                                        color: Colors.redAccent,
+                                        size: 24,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                         ],
                       ),
 
-                      _buildTextField(
-                        "Alamat",
-                        _alamatController,
-                        enabled: true,
-                      ),
-                      _buildTextField(
-                        "Pekerjaan",
-                        _pekerjaanController,
-                        enabled: true,
-                      ),
-                      _buildTextField(
-                        "Tentang Saya",
-                        _tentangController,
-                        enabled: true,
-                        maxLines: 3,
-                      ),
-                      SizedBox(
-                        width: 180, // 🔹 ubah manual lebar di sini
-                        height: 46, // 🔹 ubah manual tinggi di sini
-                        child: ElevatedButton.icon(
-                          onPressed: _saveBiodata,
-                          icon: const Icon(Icons.save, size: 20),
-                          label: const Text(
-                            "Simpan",
-                            style: TextStyle(
-                              fontSize: 14, // 🔹 ubah font juga kalau mau
-                              fontWeight: FontWeight.w600,
+                      const SizedBox(height: 20),
+
+                      // MODE VIEW (NORMAL) — sesuai urutan yg kamu minta
+                      if (!_isEditing) ...[
+                        // Pekerjaan (bold)
+                        Text(
+                          _pekerjaanController.text.isNotEmpty
+                              ? _pekerjaanController.text
+                              : '',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                            color: Color(0xFF041413),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        // Tentang Saya (multiline plain)
+                        Text(
+                          _tentangController.text.isNotEmpty
+                              ? _tentangController.text
+                              : '',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Colors.black87,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 10),
+                        const Divider(color: Colors.black26, thickness: 0.5),
+                        const SizedBox(height: 10),
+
+                        // Nama, TTL, Jenis Kelamin (urut)
+                        _buildReadOnly("Nama", _namaController.text),
+                        _buildReadOnly(
+                          "Tanggal Lahir",
+                          _tanggalController.text,
+                        ),
+                        _buildReadOnly("Jenis Kelamin", _genderValue),
+
+                        // Telepon & Alamat (tampil juga di view)
+                        _buildReadOnly("Telepon", _teleponController.text),
+                        _buildReadOnly("Alamat", _alamatController.text),
+                      ],
+
+                      // MODE EDIT: tampilkan form lengkap (pekerjaan & tentang disembunyikan di atas foto)
+                      if (_isEditing) ...[
+                        _buildTextField("Nama", _namaController, enabled: true),
+                        _buildTextField(
+                          "Tanggal Lahir",
+                          _tanggalController,
+                          enabled: true,
+                          onTap: _pickDate,
+                        ),
+                        _buildDropdownGender(),
+                        _buildTextField(
+                          "Telepon",
+                          _teleponController,
+                          enabled: true,
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                          ],
+                        ),
+
+                        _buildTextField(
+                          "Alamat",
+                          _alamatController,
+                          enabled: true,
+                        ),
+                        _buildTextField(
+                          "Pekerjaan",
+                          _pekerjaanController,
+                          enabled: true,
+                        ),
+                        _buildTextField(
+                          "Tentang Saya",
+                          _tentangController,
+                          enabled: true,
+                          maxLines: 3,
+                        ),
+                        SizedBox(
+                          width: 180, // 🔹 ubah manual lebar di sini
+                          height: 46, // 🔹 ubah manual tinggi di sini
+                          child: ElevatedButton.icon(
+                            onPressed: _saveBiodata,
+                            icon: const Icon(Icons.save, size: 20),
+                            label: const Text(
+                              "Simpan",
+                              style: TextStyle(
+                                fontSize: 14, // 🔹 ubah font juga kalau mau
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF093B2B),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              minimumSize: const Size(
+                                180,
+                                46,
+                              ), // ✅ ukuran minimum tetap stabil
                             ),
                           ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF093B2B),
-                            foregroundColor: Colors.white,
+                        ),
+                      ],
+
+                      const SizedBox(height: 20),
+                      // Logout tombol (ukuran bisa diatur manual via SizedBox)
+                      SizedBox(
+                        width: 180, // ubah lebar manual di sini
+                        height: 46, // ubah tinggi manual di sini
+                        child: OutlinedButton.icon(
+                          onPressed: _showLogoutConfirmation,
+                          icon: const Icon(
+                            Icons.logout,
+                            color: Colors.redAccent,
+                            size: 20,
+                          ),
+                          label: const Text(
+                            "Logout",
+                            style: TextStyle(
+                              color: Colors.redAccent,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(
+                              color: Colors.redAccent,
+                              width: 1.3,
+                            ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10),
                             ),
-                            minimumSize: const Size(
-                              180,
-                              46,
-                            ), // ✅ ukuran minimum tetap stabil
+                            minimumSize: const Size(180, 46),
+                            maximumSize: const Size(220, 50),
+                            backgroundColor: Colors.white,
+                            foregroundColor: Colors.redAccent,
                           ),
                         ),
                       ),
                     ],
-
-                    const SizedBox(height: 20),
-                    // Logout tombol (ukuran bisa diatur manual via SizedBox)
-                    SizedBox(
-                      width: 180, // ubah lebar manual di sini
-                      height: 46, // ubah tinggi manual di sini
-                      child: OutlinedButton.icon(
-                        onPressed: _showLogoutConfirmation,
-                        icon: const Icon(
-                          Icons.logout,
-                          color: Colors.redAccent,
-                          size: 20,
-                        ),
-                        label: const Text(
-                          "Logout",
-                          style: TextStyle(
-                            color: Colors.redAccent,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
-                          ),
-                        ),
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(
-                            color: Colors.redAccent,
-                            width: 1.3,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          minimumSize: const Size(180, 46),
-                          maximumSize: const Size(220, 50),
-                          backgroundColor: Colors.white,
-                          foregroundColor: Colors.redAccent,
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
