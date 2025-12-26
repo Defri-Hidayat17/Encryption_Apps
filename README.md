@@ -1,4 +1,4 @@
-![Encryption Apps Thumbnail](images/thumbnail_encryptionapps.png)
+![Encryption Apps Thumbnail](assets/images/thumbnail_encryptionapps.png)
 
 # 🔐 Encryption Apps  
 
