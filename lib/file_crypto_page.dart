@@ -37,6 +37,8 @@ class _FileCryptoPageState extends State<FileCryptoPage>
     'AES (Advanced Encryption Standard)',
     'DES (Data Encryption Standard)', // DES diimplementasikan sebagai XOR yang lebih kompleks
     'XOR Sederhana',
+    'Vigenere Cipher (Binary)', // METODE BARU
+    'Caesar Cipher (Binary)', // METODE BARU
   ];
   String _selectedMethod = 'AES (Advanced Encryption Standard)';
 
@@ -101,6 +103,16 @@ class _FileCryptoPageState extends State<FileCryptoPage>
   static const List<int> _aesMagic = [0x41, 0x45, 0x53]; // ASCII "AES"
   static const List<int> _desMagic = [0x44, 0x45, 0x53]; // ASCII "DES"
   static const List<int> _xorMagic = [0x58, 0x4F, 0x52]; // ASCII "XOR"
+  static const List<int> _vigenereMagic = [
+    0x56,
+    0x49,
+    0x47,
+  ]; // ASCII "VIG" - MAGIC NUMBER BARU
+  static const List<int> _caesarMagic = [
+    0x43,
+    0x41,
+    0x45,
+  ]; // ASCII "CAE" - MAGIC NUMBER BARU
   static const int _magicNumberLength = 3; // Panjang magic number dalam byte
 
   @override
@@ -247,6 +259,36 @@ class _FileCryptoPageState extends State<FileCryptoPage>
             );
             break;
 
+          case 'Vigenere Cipher (Binary)': // IMPLEMENTASI VIGENERE
+            currentMagic = _vigenereMagic;
+            final vigenereKeyBytes = utf8.encode(keyString);
+            if (vigenereKeyBytes.isEmpty) {
+              throw Exception('Kunci Vigenere tidak boleh kosong.');
+            }
+            encryptedContentBytes = Uint8List.fromList(
+              List.generate(inputBytes.length, (i) {
+                // Vigenere for binary: (plaintext_byte + key_byte) % 256
+                return (inputBytes[i] +
+                        vigenereKeyBytes[i % vigenereKeyBytes.length]) %
+                    256;
+              }),
+            );
+            break;
+
+          case 'Caesar Cipher (Binary)': // IMPLEMENTASI CAESAR
+            currentMagic = _caesarMagic;
+            // Untuk Caesar, kita bisa mendapatkan nilai shift tunggal dari kunci
+            // Untuk kesederhanaan, ambil jumlah byte kunci modulo 256
+            final caesarShift = utf8
+                .encode(keyString)
+                .fold(0, (prev, element) => (prev + element) % 256);
+            encryptedContentBytes = Uint8List.fromList(
+              List.generate(inputBytes.length, (i) {
+                return (inputBytes[i] + caesarShift) % 256;
+              }),
+            );
+            break;
+
           default:
             throw Exception('Metode enkripsi tidak dikenal.');
         }
@@ -352,6 +394,12 @@ class _FileCryptoPageState extends State<FileCryptoPage>
           detectedMethod = 'DES (Data Encryption Standard)';
         } else if (_listEquals(receivedMagic, _xorMagic)) {
           detectedMethod = 'XOR Sederhana';
+        } else if (_listEquals(receivedMagic, _vigenereMagic)) {
+          // DETEKSI VIGENERE
+          detectedMethod = 'Vigenere Cipher (Binary)';
+        } else if (_listEquals(receivedMagic, _caesarMagic)) {
+          // DETEKSI CAESAR
+          detectedMethod = 'Caesar Cipher (Binary)';
         } else {
           throw Exception(
             'Data bukan format terenkripsi yang valid atau metode tidak dikenal.',
@@ -414,6 +462,34 @@ class _FileCryptoPageState extends State<FileCryptoPage>
               List.generate(actualEncryptedBytes.length, (i) {
                 return actualEncryptedBytes[i] ^
                     xorKeyBytes[i % xorKeyBytes.length];
+              }),
+            );
+            break;
+
+          case 'Vigenere Cipher (Binary)': // DEKRIPSI VIGENERE
+            final vigenereKeyBytes = utf8.encode(keyString);
+            if (vigenereKeyBytes.isEmpty) {
+              throw Exception('Kunci Vigenere tidak boleh kosong.');
+            }
+            decryptedBytes = Uint8List.fromList(
+              List.generate(actualEncryptedBytes.length, (i) {
+                // Vigenere for binary: (ciphertext_byte - key_byte + 256) % 256
+                // Menambahkan 256 memastikan hasil positif sebelum modulo
+                return (actualEncryptedBytes[i] -
+                        vigenereKeyBytes[i % vigenereKeyBytes.length] +
+                        256) %
+                    256;
+              }),
+            );
+            break;
+
+          case 'Caesar Cipher (Binary)': // DEKRIPSI CAESAR
+            final caesarShift = utf8
+                .encode(keyString)
+                .fold(0, (prev, element) => (prev + element) % 256);
+            decryptedBytes = Uint8List.fromList(
+              List.generate(actualEncryptedBytes.length, (i) {
+                return (actualEncryptedBytes[i] - caesarShift + 256) % 256;
               }),
             );
             break;
@@ -846,7 +922,7 @@ class _FileCryptoPageState extends State<FileCryptoPage>
                       ),
                       const SizedBox(width: 12),
                       const Text(
-                        'KRIPTOGRAFI FILE', // <<<--- PERUBAHAN DI SINI
+                        'KRIPTOGRAFI FILE',
                         style: TextStyle(
                           fontFamily: 'Orbitron',
                           fontSize: 15,
@@ -872,20 +948,6 @@ class _FileCryptoPageState extends State<FileCryptoPage>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // --- TEKS INI DIHAPUS ---
-                        // Text(
-                        //   'Operasi Kriptografi File',
-                        //   style: Theme.of(context)
-                        //       .textTheme
-                        //       .headlineSmall
-                        //       ?.copyWith(
-                        //         fontWeight: FontWeight.bold,
-                        //         color: _primaryTextColor,
-                        //         fontFamily: 'Orbitron',
-                        //       ),
-                        // ),
-                        // const SizedBox(height: 16), // Jarak juga dihapus jika teks di atas dihapus
-
                         // Dropdown untuk memilih metode kriptografi
                         Text(
                           'Pilih Metode Kriptografi:',

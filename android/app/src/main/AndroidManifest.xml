@@ -10,9 +10,9 @@
         android:maxSdkVersion="29" />
 
     <application
-        android:label="encryptionapps"
+        android:label="encryption"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/launcher_icon">
         
         <activity
             android:name=".MainActivity"

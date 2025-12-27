@@ -9,8 +9,10 @@ import 'dart:math' as math;
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:sqflite/sqflite.dart';
-import 'package:path/path.dart';
-import 'main.dart';
+import 'package:path/path.dart'
+    as p; // Menggunakan alias 'p' untuk menghindari konflik nama
+import 'dart:io'; // Import untuk File
+import 'main.dart'; // Asumsi ini berisi rootScaffoldMessengerKey
 
 final messengerKey = rootScaffoldMessengerKey;
 
@@ -31,7 +33,6 @@ class _LoginPageState extends State<LoginPage>
   AnimationController? _colorController;
 
   final GoogleSignIn _googleSignIn = GoogleSignIn(scopes: ['email', 'profile']);
-  Database? _database;
 
   @override
   void initState() {
@@ -40,7 +41,7 @@ class _LoginPageState extends State<LoginPage>
       vsync: this,
       duration: const Duration(seconds: 8),
     )..repeat();
-    _initDatabaseAndAutoLogin();
+    _checkAutoLogin(); // Langsung cek auto-login, database akan dibuka saat dibutuhkan
     SystemChrome.setSystemUIOverlayStyle(
       const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
@@ -50,58 +51,39 @@ class _LoginPageState extends State<LoginPage>
     );
   }
 
-  Future<void> _initDatabaseAndAutoLogin() async {
-    await _initDatabase();
-    await _checkAutoLogin();
-  }
-
-  Future<void> _initDatabase() async {
+  // Fungsi ini akan membuka database spesifik pengguna
+  // dan membuat tabel jika belum ada.
+  Future<Database> _openUserDatabase(String userEmail) async {
     final dbPath = await getDatabasesPath();
-    _database = await openDatabase(
-      join(dbPath, 'biodata.db'),
-      version: 3,
+    final safeEmail = userEmail.replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '_');
+    final path = p.join(dbPath, 'biodata_$safeEmail.db');
+
+    return await openDatabase(
+      path,
+      version: 1, // Versi 1 karena ini adalah struktur awal yang konsisten
       onCreate: (db, version) async {
         await db.execute('''
-CREATE TABLE biodata (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  email TEXT UNIQUE,
-  nama TEXT,
-  ttl TEXT,
-  jenisKelamin TEXT,
-  pekerjaan TEXT,
-  tentang TEXT,
-  foto BLOB
-)
+          CREATE TABLE biodata(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nama TEXT,
+            tanggalLahir TEXT,
+            gender TEXT,
+            telepon TEXT,
+            alamat TEXT,
+            pekerjaan TEXT,
+            tentang TEXT,
+            foto TEXT
+          )
         ''');
       },
-      onUpgrade: (db, oldVersion, newVersion) async {
-        if (oldVersion < 3) {
-          await db.execute('''
-CREATE TABLE biodata_new (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  email TEXT UNIQUE,
-  nama TEXT,
-  ttl TEXT,
-  jenisKelamin TEXT,
-  pekerjaan TEXT,
-  tentang TEXT,
-  foto BLOB
-)
-          ''');
-          await db.execute('''
-INSERT INTO biodata_new (email, nama, ttl, jenisKelamin, pekerjaan, tentang, foto)
-SELECT email, nama, ttl, jenisKelamin, pekerjaan, tentang, foto FROM biodata
-          ''');
-          await db.execute('DROP TABLE biodata');
-          await db.execute('ALTER TABLE biodata_new RENAME TO biodata');
-        }
-      },
+      // Tidak perlu onUpgrade di sini karena kita ingin konsisten dengan ProfilePage
+      // dan jika ada perubahan skema, itu harus ditangani di ProfilePage juga
     );
   }
 
   Future<void> _checkAutoLogin() async {
     final user = FirebaseAuth.instance.currentUser;
-    if (user != null && _database != null) {
+    if (user != null && user.email != null) {
       final hasBiodata = await _checkBiodataExists(user.email!);
       if (hasBiodata) {
         Navigator.pushReplacementNamed(super.context, '/home');
@@ -112,30 +94,49 @@ SELECT email, nama, ttl, jenisKelamin, pekerjaan, tentang, foto FROM biodata
   }
 
   Future<bool> _checkBiodataExists(String email) async {
-    if (_database == null) return false;
-
-    final List<Map<String, dynamic>> result = await _database!.query(
-      'biodata',
-      where: 'email = ?',
-      whereArgs: [email],
-      limit: 1,
-    );
-
-    return result.isNotEmpty;
+    Database? db;
+    try {
+      db = await _openUserDatabase(email);
+      final List<Map<String, dynamic>> result = await db.query(
+        'biodata',
+        limit: 1,
+      );
+      return result.isNotEmpty;
+    } catch (e) {
+      print("Error checking biodata for $email: $e");
+      return false;
+    } finally {
+      if (db != null && db.isOpen) {
+        await db.close();
+      }
+    }
   }
 
   Future<void> _insertBiodata(String email) async {
-    if (_database == null) return;
-
-    await _database!.insert('biodata', {
-      'email': email,
-      'nama': '',
-      'ttl': '',
-      'jenisKelamin': '',
-      'pekerjaan': '',
-      'tentang': '',
-      'foto': null,
-    }, conflictAlgorithm: ConflictAlgorithm.replace);
+    Database? db;
+    try {
+      db = await _openUserDatabase(email);
+      await db.insert(
+        'biodata',
+        {
+          'nama': '',
+          'tanggalLahir': '',
+          'gender': 'Laki-laki', // Default value
+          'telepon': '',
+          'alamat': '',
+          'pekerjaan': '',
+          'tentang': '',
+          'foto': '',
+        },
+        conflictAlgorithm: ConflictAlgorithm.ignore,
+      ); // Gunakan ignore untuk menghindari duplikat jika sudah ada
+    } catch (e) {
+      print("Error inserting initial biodata for $email: $e");
+    } finally {
+      if (db != null && db.isOpen) {
+        await db.close();
+      }
+    }
   }
 
   @override
@@ -143,7 +144,6 @@ SELECT email, nama, ttl, jenisKelamin, pekerjaan, tentang, foto FROM biodata
     _colorController?.dispose();
     _emailController.dispose();
     _passwordController.dispose();
-    _database?.close();
     super.dispose();
   }
 
@@ -157,11 +157,15 @@ SELECT email, nama, ttl, jenisKelamin, pekerjaan, tentang, foto FROM biodata
     try {
       setState(() => _isGoogleLoading = true);
 
+      // Pastikan logout dari sesi sebelumnya jika ada
       await _googleSignIn.signOut();
       await FirebaseAuth.instance.signOut();
 
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      if (googleUser == null) return;
+      if (googleUser == null) {
+        setState(() => _isGoogleLoading = false);
+        return; // Pengguna membatalkan login Google
+      }
 
       final googleAuth = await googleUser.authentication;
       final credential = GoogleAuthProvider.credential(
@@ -188,6 +192,18 @@ SELECT email, nama, ttl, jenisKelamin, pekerjaan, tentang, foto FROM biodata
         const SnackBar(
           content: Text("Login dengan Google berhasil 🎉"),
           backgroundColor: Colors.green,
+        ),
+      );
+    } on FirebaseAuthException catch (e) {
+      String msg = "Gagal login dengan Google.";
+      if (e.code == 'account-exists-with-different-credential') {
+        msg =
+            "Akun sudah ada dengan kredensial berbeda. Coba login dengan metode lain.";
+      }
+      messengerKey.currentState?.showSnackBar(
+        SnackBar(
+          content: Text("$msg: ${e.message}"),
+          backgroundColor: Colors.redAccent,
         ),
       );
     } catch (e) {
@@ -244,6 +260,13 @@ SELECT email, nama, ttl, jenisKelamin, pekerjaan, tentang, foto FROM biodata
       if (e.code == 'invalid-email') msg = "Format email tidak valid!";
       messengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(msg), backgroundColor: Colors.redAccent),
+      );
+    } catch (e) {
+      messengerKey.currentState?.showSnackBar(
+        SnackBar(
+          content: Text("Terjadi kesalahan: $e"),
+          backgroundColor: Colors.redAccent,
+        ),
       );
     }
   }

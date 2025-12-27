@@ -71,6 +71,16 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^5.0.0
+  flutter_launcher_icons: "^0.13.1" # <<<--- HANYA DEKLARASI PACKAGE DI SINI
+
+# --- MULAI DARI SINI: KONFIGURASI FLUTTER_LAUNCHER_ICONS DI LEVEL TERATAS ---
+flutter_launcher_icons: # <<<--- INI DIMULAI DARI KOLOM PERTAMA (TIDAK ADA INDENTASI)
+  android: "launcher_icon" # Ini di-indentasi 2 spasi dari 'flutter_launcher_icons:'
+  ios: true # Ini di-indentasi 2 spasi
+  image_path: "assets/images/logoencryptionapps.png" # <<<--- GANTI DENGAN PNG, DAN PASTIKAN INDENTASI 2 SPASI
+  # adaptive_icon_background: # Opsional, jika ingin ikon adaptif Android
+  # adaptive_icon_foreground: "assets/images/logoencryptionapps_foreground.png" # Opsional, jika ingin ikon adaptif Android
+# --- AKHIR KONFIGURASI FLUTTER_LAUNCHER_ICONS ---
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
