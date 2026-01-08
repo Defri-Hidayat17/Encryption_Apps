@@ -8,11 +8,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // Untuk SystemChrome dan Clipboard
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:path_provider/path_provider.dart'; // Untuk getTemporaryDirectory (meskipun tidak lagi digunakan secara langsung, tetap dipertahankan jika ada kebutuhan lain)
+import 'package:path_provider/path_provider.dart'; // Untuk getTemporaryDirectory
 import 'package:path/path.dart' as p; // Untuk manipulasi path file
 import 'package:encrypt/encrypt.dart' as enc; // Alias untuk package encrypt
 import 'package:shared_preferences/shared_preferences.dart'; // Untuk menyimpan preferensi metode kripto
-import 'package:share_plus/share_plus.dart'; // Untuk berbagi konten
+import 'package:share_plus/share_plus.dart'; // Untuk berbagi konten, termasuk file
+import 'package:url_launcher/url_launcher.dart'; // Untuk membuka URL (tetap dipertahankan jika ada kebutuhan lain)
 
 class FileCryptoPage extends StatefulWidget {
   const FileCryptoPage({super.key});
@@ -32,6 +33,15 @@ class _FileCryptoPageState extends State<FileCryptoPage>
   bool _isKeyVisible = false; // State baru untuk visibilitas kunci
   String?
   _lastEncryptedBase64Content; // Untuk menyimpan konten terenkripsi Base64 untuk berbagi
+
+  // NEW: Untuk menyimpan data biner terenkripsi (raw bytes) untuk berbagi file .enc
+  Uint8List? _lastEncryptedRawBytes;
+
+  // State baru untuk menyimpan metode kriptografi terakhir yang digunakan
+  String? _lastCryptoMethodUsed;
+
+  // NEW: Untuk melacak file teks Base64 yang terakhir disimpan
+  File? _lastSavedBase64TextFile;
 
   final List<String> _cryptoMethods = [
     'AES (Advanced Encryption Standard)',
@@ -164,6 +174,10 @@ class _FileCryptoPageState extends State<FileCryptoPage>
         _outputFilePathDisplay = 'File hasil akan muncul di sini.';
         _lastEncryptedBase64Content =
             null; // Reset konten Base64 saat file baru dipilih
+        _lastEncryptedRawBytes = null; // NEW: Reset raw bytes
+        _lastCryptoMethodUsed = null; // Reset metode kripto terakhir
+        _lastSavedBase64TextFile =
+            null; // NEW: Reset file teks Base64 yang disimpan
       });
     } else {
       setState(() {
@@ -184,6 +198,10 @@ class _FileCryptoPageState extends State<FileCryptoPage>
       _outputFilePathDisplay = 'File hasil akan muncul di sini.';
       _isKeyVisible = false; // Reset visibilitas kunci
       _lastEncryptedBase64Content = null; // Reset konten Base64
+      _lastEncryptedRawBytes = null; // NEW: Reset raw bytes
+      _lastCryptoMethodUsed = null; // Reset metode kripto terakhir
+      _lastSavedBase64TextFile =
+          null; // NEW: Reset file teks Base64 yang disimpan
     });
     _loaderController.stop();
     _showMessage('Semua input dan status telah direset.', isError: false);
@@ -204,14 +222,20 @@ class _FileCryptoPageState extends State<FileCryptoPage>
       _statusMessage =
           isEncrypt ? 'Mengenkripsi file...' : 'Mendekripsi file...';
       _loaderController.repeat();
+      _lastCryptoMethodUsed = null; // Reset sebelum operasi baru dimulai
+      _lastSavedBase64TextFile = null; // Reset file teks Base64 yang disimpan
+      _lastEncryptedRawBytes = null; // Reset raw bytes
     });
 
     try {
       final keyString = _keyController.text;
       String outputFileNameSuggestion;
 
-      final originalFileName = p.basenameWithoutExtension(_selectedFile!.path);
-      final originalExtension = p.extension(_selectedFile!.path);
+      // Ambil nama dan ekstensi file input asli
+      final String originalInputFileName = p.basenameWithoutExtension(
+        _selectedFile!.path,
+      );
+      final String originalInputExtension = p.extension(_selectedFile!.path);
 
       // Kunci AES yang diturunkan dari SHA256 hash
       final keyBytes = utf8.encode(keyString);
@@ -225,6 +249,15 @@ class _FileCryptoPageState extends State<FileCryptoPage>
         Uint8List
         encryptedContentBytes; // Ini akan menampung data terenkripsi (termasuk IV untuk AES)
         List<int> currentMagic; // Magic number untuk metode yang dipilih
+
+        // NEW: Simpan ekstensi file asli
+        final originalExtensionBytes = utf8.encode(originalInputExtension);
+        if (originalExtensionBytes.length > 255) {
+          throw Exception('Ekstensi file asli terlalu panjang.');
+        }
+        final int extensionLength = originalExtensionBytes.length;
+        final Uint8List extensionLengthByte = Uint8List(1)
+          ..[0] = extensionLength;
 
         switch (_selectedMethod) {
           case 'AES (Advanced Encryption Standard)':
@@ -293,16 +326,22 @@ class _FileCryptoPageState extends State<FileCryptoPage>
             throw Exception('Metode enkripsi tidak dikenal.');
         }
 
-        // Gabungkan magic number dengan data terenkripsi (raw binary)
+        // Gabungkan magic number, panjang ekstensi, ekstensi, dan data terenkripsi (raw binary)
         final finalEncryptedDataRaw = Uint8List.fromList(
-          currentMagic + encryptedContentBytes,
+          currentMagic +
+              extensionLengthByte +
+              originalExtensionBytes +
+              encryptedContentBytes,
         );
+
+        // NEW: Simpan raw bytes untuk potensi berbagi sebagai file .enc
+        _lastEncryptedRawBytes = finalEncryptedDataRaw;
 
         // Konversi ke Base64 untuk keperluan berbagi dan penyimpanan teks
         _lastEncryptedBase64Content = base64Url.encode(finalEncryptedDataRaw);
 
         outputFileNameSuggestion =
-            '${originalFileName}_encrypted.enc'; // Ekstensi .enc untuk file terenkripsi lokal
+            '${originalInputFileName}_encrypted.enc'; // Ekstensi .enc untuk file terenkripsi lokal
 
         // --- Simpan file terenkripsi (raw binary) ke lokasi yang dipilih pengguna ---
         final String? selectedOutputPath = await FilePicker.platform.saveFile(
@@ -320,6 +359,8 @@ class _FileCryptoPageState extends State<FileCryptoPage>
           );
           setState(() {
             _outputFilePathDisplay = _outputFile!.path;
+            _lastCryptoMethodUsed =
+                _selectedMethod; // Simpan metode yang digunakan
           });
         } else {
           _showMessage(
@@ -376,16 +417,39 @@ class _FileCryptoPageState extends State<FileCryptoPage>
         // Sekarang, inputDataBytes berisi data terenkripsi mentah yang sebenarnya
         // (baik dari file biner atau yang sudah didekode dari string Base64)
         // Lanjutkan dengan pemeriksaan magic number dan dekripsi
-        if (inputDataBytes.length < _magicNumberLength) {
+        if (inputDataBytes.length < _magicNumberLength + 1) {
+          // +1 untuk byte panjang ekstensi
           throw Exception(
-            'Data terlalu pendek untuk dekripsi (magic number hilang?).',
+            'Data terlalu pendek untuk dekripsi (magic number atau panjang ekstensi hilang?).',
           );
         }
 
         final receivedMagic = inputDataBytes.sublist(0, _magicNumberLength);
-        final actualEncryptedBytes = inputDataBytes.sublist(
-          _magicNumberLength,
-        ); // Konten setelah magic number
+
+        // NEW: Ekstrak panjang ekstensi asli
+        final int extractedExtensionLength = inputDataBytes[_magicNumberLength];
+
+        // Periksa apakah ada cukup data untuk byte ekstensi
+        if (inputDataBytes.length <
+            _magicNumberLength + 1 + extractedExtensionLength) {
+          throw Exception(
+            'Data terlalu pendek untuk dekripsi (ekstensi file hilang atau rusak?).',
+          );
+        }
+
+        // NEW: Ekstrak byte ekstensi asli
+        final Uint8List extractedExtensionBytes = inputDataBytes.sublist(
+          _magicNumberLength + 1,
+          _magicNumberLength + 1 + extractedExtensionLength,
+        );
+        final String retrievedOriginalExtension = utf8.decode(
+          extractedExtensionBytes,
+        );
+
+        // Sesuaikan titik awal untuk konten terenkripsi aktual
+        final int contentOffset =
+            _magicNumberLength + 1 + extractedExtensionLength;
+        final actualEncryptedBytes = inputDataBytes.sublist(contentOffset);
 
         String detectedMethod;
         if (_listEquals(receivedMagic, _aesMagic)) {
@@ -501,40 +565,22 @@ class _FileCryptoPageState extends State<FileCryptoPage>
         }
 
         // Tentukan nama file output yang disarankan
-        String baseName = originalFileName;
-        String suggestedExtension = originalExtension;
+        // Ambil nama dasar dari file terenkripsi yang dipilih (misal: "dokumen_encrypted")
+        String decryptedBaseName = p.basenameWithoutExtension(
+          _selectedFile!.path,
+        );
 
-        // Jika input berasal dari file .enc atau teks Base64
-        if (originalExtension.toLowerCase() == '.enc' || shouldTryBase64) {
-          baseName = p.basenameWithoutExtension(
-            _selectedFile!.path,
-          ); // Dapatkan nama tanpa .enc atau .txt
-          if (baseName.endsWith('_encrypted')) {
-            baseName = baseName.substring(
-              0,
-              baseName.length - '_encrypted'.length,
-            );
-          }
-          // Untuk ekstensi, kita tidak tahu ekstensi aslinya, jadi biarkan pengguna memilih
-          suggestedExtension = ''; // FilePicker akan meminta ekstensi
-        } else if (baseName.endsWith('_encrypted')) {
-          baseName = baseName.substring(
+        // Hapus suffix "_encrypted" jika ada
+        if (decryptedBaseName.endsWith('_encrypted')) {
+          decryptedBaseName = decryptedBaseName.substring(
             0,
-            baseName.length - '_encrypted'.length,
+            decryptedBaseName.length - '_encrypted'.length,
           );
         }
 
-        // Jika suggestedExtension kosong, FilePicker akan meminta pengguna untuk memasukkan ekstensi.
-        // Jika tidak, kita bisa mencoba mengembalikan ekstensi asli dari file input (jika bukan .enc/.txt/.b64)
-        if (suggestedExtension.isEmpty &&
-            !originalExtension.toLowerCase().contains('.enc') &&
-            !originalExtension.toLowerCase().contains('.txt') &&
-            !originalExtension.toLowerCase().contains('.b64')) {
-          suggestedExtension =
-              originalExtension; // Gunakan ekstensi asli jika ada
-        }
+        // Gunakan ekstensi asli yang diambil dari data terenkripsi
         outputFileNameSuggestion =
-            '${baseName}_decrypted${suggestedExtension.isNotEmpty ? suggestedExtension : ''}';
+            '${decryptedBaseName}_decrypted$retrievedOriginalExtension';
 
         // --- Simpan file hasil dekripsi ke lokasi yang dipilih pengguna ---
         final String? selectedOutputPath = await FilePicker.platform.saveFile(
@@ -552,6 +598,8 @@ class _FileCryptoPageState extends State<FileCryptoPage>
           );
           setState(() {
             _outputFilePathDisplay = _outputFile!.path;
+            _lastCryptoMethodUsed =
+                detectedMethod; // Simpan metode yang digunakan
           });
         } else {
           _showMessage(
@@ -595,6 +643,7 @@ class _FileCryptoPageState extends State<FileCryptoPage>
       _showMessage(errorMessage, isError: true);
       setState(() {
         _outputFilePathDisplay = 'Gagal memproses file.';
+        _lastCryptoMethodUsed = null; // Reset jika gagal
       });
     } finally {
       setState(() {
@@ -652,45 +701,191 @@ class _FileCryptoPageState extends State<FileCryptoPage>
       return;
     }
 
-    // Tampilkan dialog pilihan
-    final choice = await showDialog<String>(
+    // Tentukan apakah file .enc hasil enkripsi ada dan berekstensi .enc
+    // Kita hanya perlu memeriksa apakah _outputFile tidak null dan ekstensinya .enc,
+    // dan juga _lastEncryptedRawBytes tidak null.
+    final bool encFileExists =
+        _outputFile != null &&
+        p.extension(_outputFile!.path).toLowerCase() == '.enc' &&
+        _lastEncryptedRawBytes != null;
+
+    // Tentukan apakah file .txt Base64 yang terakhir disimpan ada
+    // Sama, cukup periksa apakah _lastSavedBase64TextFile tidak null.
+    final bool txtFileExists = _lastSavedBase64TextFile != null;
+
+    // Tampilkan bottom sheet dengan opsi berbagi
+    await showModalBottomSheet(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Pilih Aksi'),
-          content: const Text(
-            'Anda ingin membagikan teks terenkripsi ke aplikasi lain atau menyimpannya sebagai file teks lokal?',
+      backgroundColor: Colors.transparent, // Untuk sudut melengkung
+      builder: (BuildContext bc) {
+        return Container(
+          decoration: const BoxDecoration(
+            color:
+                _scaffoldBackgroundColor, // Warna latar belakang bottom sheet
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(20),
+              topRight: Radius.circular(20),
+            ),
           ),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.pop(context, 'share'),
-              child: const Text('Bagikan ke Aplikasi Lain'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(context, 'save'),
-              child: const Text('Simpan sebagai File Teks'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(context, null),
-              child: const Text('Batal'),
-            ),
-          ],
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 15),
+              Text(
+                'Pilih Opsi Berbagi/Simpan',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: _primaryTextColor,
+                ),
+              ),
+              const SizedBox(height: 15),
+              // Opsi 1: Bagikan teks Base64 langsung ke aplikasi lain
+              _buildShareOption(
+                icon: Icons.text_fields,
+                title: 'Bagikan Teks Base64 (ke Aplikasi)',
+                onTap: () {
+                  Navigator.pop(context); // Tutup bottom sheet
+                  Share.share(
+                    _lastEncryptedBase64Content!,
+                    subject: 'Teks Terenkripsi dari Aplikasi Kripto',
+                  );
+                  _showMessage(
+                    'Teks Base64 terenkripsi telah dibagikan.',
+                    isError: false,
+                  );
+                },
+              ),
+              // Opsi 2: Simpan teks Base64 sebagai file .txt
+              _buildShareOption(
+                icon: Icons.save,
+                title: 'Simpan Teks Base64 sebagai File (.txt)',
+                onTap: () {
+                  Navigator.pop(context); // Tutup bottom sheet
+                  _saveEncryptedBase64AsTextFile();
+                },
+              ),
+              // Opsi 3: Bagikan file terenkripsi (.enc) jika ada
+              if (encFileExists) // Tampilkan hanya jika file .enc ada
+                _buildShareOption(
+                  icon: Icons.attach_file,
+                  title: 'Bagikan File Terenkripsi (.enc)',
+                  onTap: () async {
+                    Navigator.pop(context); // Tutup bottom sheet
+                    try {
+                      final tempDir = await getTemporaryDirectory();
+                      final fileName = p.basename(_outputFile!.path);
+                      final tempFilePath = p.join(tempDir.path, fileName);
+                      final tempFile = File(tempFilePath);
+
+                      // NEW: Tulis raw bytes langsung ke file sementara
+                      await tempFile.writeAsBytes(
+                        _lastEncryptedRawBytes!,
+                      ); // Gunakan stored raw bytes
+
+                      await Share.shareXFiles(
+                        [XFile(tempFile.path)], // Gunakan path file sementara
+                        subject:
+                            'File Terenkripsi dari EncryptionApps by Defri',
+                      );
+                      _showMessage(
+                        'File terenkripsi (.enc) telah dibagikan.',
+                        isError: false,
+                      );
+                      // Opsional: Hapus file sementara setelah berbagi
+                      await tempFile.delete();
+                    } catch (e) {
+                      _showMessage(
+                        'Gagal membagikan file terenkripsi: ${e.toString()}',
+                        isError: true,
+                      );
+                    }
+                  },
+                ),
+              // Opsi 4: Bagikan file teks Base64 (.txt) jika ada
+              if (txtFileExists) // Tampilkan hanya jika file .txt Base64 ada
+                _buildShareOption(
+                  icon: Icons.insert_drive_file,
+                  title: 'Bagikan File Teks Base64 (.txt)',
+                  onTap: () async {
+                    Navigator.pop(context); // Tutup bottom sheet
+                    try {
+                      final tempDir = await getTemporaryDirectory();
+                      final fileName = p.basename(
+                        _lastSavedBase64TextFile!.path,
+                      );
+                      final tempFilePath = p.join(tempDir.path, fileName);
+                      final tempFile = File(tempFilePath);
+
+                      // NEW: Tulis konten Base64 langsung ke file sementara
+                      await tempFile.writeAsString(
+                        _lastEncryptedBase64Content!,
+                        encoding: utf8,
+                      );
+
+                      await Share.shareXFiles(
+                        [XFile(tempFile.path)], // Gunakan path file sementara
+                        subject: 'File Teks Base64 dari Aplikasi Kripto',
+                      );
+                      _showMessage(
+                        'File teks Base64 (.txt) telah dibagikan.',
+                        isError: false,
+                      );
+                      // Opsional: Hapus file sementara setelah berbagi
+                      await tempFile.delete();
+                    } catch (e) {
+                      _showMessage(
+                        'Gagal membagikan file teks Base64: ${e.toString()}',
+                        isError: true,
+                      );
+                    }
+                  },
+                ),
+            ],
+          ),
         );
       },
     );
+  }
 
-    if (choice == 'share') {
-      await Share.share(
-        _lastEncryptedBase64Content!,
-        subject: 'File Terenkripsi dari Aplikasi Kripto',
-      );
-      _showMessage(
-        'Konten terenkripsi telah dibagikan ke aplikasi lain.',
-        isError: false,
-      );
-    } else if (choice == 'save') {
-      await _saveEncryptedBase64AsTextFile();
-    }
+  // Widget pembantu untuk opsi berbagi
+  Widget _buildShareOption({
+    String? iconPath,
+    IconData? icon,
+    required String title,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+        child: Row(
+          children: [
+            if (iconPath != null)
+              SvgPicture.asset(iconPath, height: 28, width: 28)
+            else if (icon != null)
+              Icon(icon, size: 28, color: _primaryTextColor),
+            const SizedBox(width: 15),
+            Text(
+              title,
+              style: const TextStyle(fontSize: 16, color: _primaryTextColor),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _saveEncryptedBase64AsTextFile() async {
@@ -714,6 +909,11 @@ class _FileCryptoPageState extends State<FileCryptoPage>
     );
 
     if (selectedOutputPath != null) {
+      setState(() {
+        _lastSavedBase64TextFile = File(
+          selectedOutputPath,
+        ); // NEW: Simpan referensi file
+      });
       _showMessage(
         'Teks terenkripsi berhasil disimpan ke: ${p.basename(selectedOutputPath)}',
         isError: false,
@@ -1259,7 +1459,7 @@ class _FileCryptoPageState extends State<FileCryptoPage>
                                 color: Colors.white,
                               ),
                               label: const Text(
-                                'Bagikan Teks Terenkripsi',
+                                'Bagikan File Hasil Enkripsi', // Teks tombol lebih umum
                                 style: TextStyle(color: Colors.white),
                               ),
                               style: ElevatedButton.styleFrom(
@@ -1278,7 +1478,7 @@ class _FileCryptoPageState extends State<FileCryptoPage>
                           ),
                           const SizedBox(height: 16),
                           const Text(
-                            'Catatan: Konten yang dibagikan adalah teks Base64 dari file terenkripsi. Untuk mendekripsi, Anda bisa menyimpannya sebagai file .txt (melalui opsi di atas) lalu pilih file .txt tersebut sebagai input di aplikasi ini, atau bagikan ke penerima yang akan memprosesnya.',
+                            'Pilih opsi berbagi atau simpan untuk konten terenkripsi (teks Base64 atau file).',
                             style: TextStyle(
                               fontSize: 12,
                               color: _secondaryTextColor,
@@ -1326,6 +1526,47 @@ class _FileCryptoPageState extends State<FileCryptoPage>
                           ),
                         ),
                         const SizedBox(height: 20),
+
+                        // --- BOX BARU: Metode Kriptografi Terakhir ---
+                        if (_lastCryptoMethodUsed != null) ...[
+                          Text(
+                            'Metode Kriptografi Terakhir:',
+                            style: Theme.of(
+                              context,
+                            ).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: _primaryTextColor,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: _outputFileBackgroundColor, // Putih
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: _inputBorderColor),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.grey.withOpacity(0.1),
+                                  spreadRadius: 1,
+                                  blurRadius: 3,
+                                  offset: const Offset(0, 1),
+                                ),
+                              ],
+                            ),
+                            child: Text(
+                              _lastCryptoMethodUsed!,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: _primaryTextColor,
+                                fontWeight: FontWeight.bold, // Lebih menonjol
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                        ],
+                        // --- AKHIR BOX BARU ---
 
                         // Lokasi File Hasil
                         Text(
