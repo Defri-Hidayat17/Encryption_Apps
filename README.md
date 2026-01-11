@@ -1,6 +1,7 @@
+![Encryption Apps Thumbnail](assets/images/thumbnail_encryptionapps.png)
+
 # 🔐 Encryption Apps
 
-![Encryption Apps Thumbnail](assets/images/thumbnail_encryptionapps.png)
 
 Aplikasi **Enkripsi & Dekripsi berbasis Flutter**  
 Proyek Mata Kuliah **Kriptografi**  
