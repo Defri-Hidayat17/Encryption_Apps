@@ -112,6 +112,8 @@ Aplikasi ini dikembangkan sebagai **media pembelajaran interaktif** untuk memaha
 | Informasi | Detail |
 |----------|--------|
 | Nama | Defri Lugas Hidayat |
+| NIM | 312310272 |
+| Kelas | TI.23.C4 |
 | Program Studi | Teknik Informatika |
 | Universitas | Universitas Pelita Bangsa |
 
