@@ -1,46 +1,128 @@
+# 🔐 Encryption Apps
+
 ![Encryption Apps Thumbnail](assets/images/thumbnail_encryptionapps.png)
 
-# 🔐 Encryption Apps  
-
-**DEFRI LUGAS HIDAYAT — Universitas Pelita Bangsa — Teknik Informatika**  
-_Aplikasi Enkripsi & Dekripsi berbasis Flutter_
+Aplikasi **Enkripsi & Dekripsi berbasis Flutter**  
+Proyek Mata Kuliah **Kriptografi**  
+**Program Studi Teknik Informatika — Universitas Pelita Bangsa**
 
 ---
 
-## 📘 Deskripsi Proyek
-**Encryption Apps** adalah aplikasi mobile berbasis **Flutter** yang dikembangkan sebagai proyek untuk mata kuliah **Kriptografi** dan diintegrasikan dengan konsep **Sistem Operasi**.  
-Aplikasi ini dirancang untuk memberikan pemahaman praktis mengenai cara kerja berbagai algoritma enkripsi klasik dan modern, serta bagaimana sistem dapat mengelola proses dan data di dalamnya secara efisien.
+## 📌 Informasi Proyek
+| Item | Keterangan |
+|------|------------|
+| Nama Aplikasi | Encryption Apps |
+| Platform | Mobile (Flutter) |
+| Mata Kuliah | Kriptografi |
+| Program Studi | Teknik Informatika |
+| Institusi | Universitas Pelita Bangsa |
+| Fokus | Enkripsi & Dekripsi Teks dan File |
 
-Proyek ini juga menggambarkan bagaimana penerapan konsep **manajemen memori, proses, dan keamanan data** diimplementasikan dalam lingkungan user-space menggunakan framework modern.
+---
+
+## 📘 Tentang Proyek
+**Encryption Apps** adalah aplikasi mobile berbasis **Flutter** yang mengimplementasikan **algoritma kriptografi klasik dan modern** untuk mengamankan data teks maupun file.
+
+Aplikasi ini dikembangkan sebagai **media pembelajaran interaktif** untuk memahami konsep:
+- Keamanan data
+- Kriptografi simetris dan asimetris
+- Implementasi kriptografi dalam aplikasi mobile modern
 
 ---
 
 ## 🎯 Tujuan Pengembangan
-1. Mengimplementasikan berbagai algoritma kriptografi (klasik dan modern) dalam bentuk aplikasi interaktif.  
-2. Meningkatkan pemahaman mahasiswa terhadap prinsip kerja sistem operasi dalam konteks aplikasi.  
-3. Mengembangkan aplikasi dengan arsitektur modular dan UI yang responsif.  
-4. Menunjukkan integrasi antara konsep teori (kriptografi & sistem operasi) dengan praktik pengembangan aplikasi nyata.
+| No | Tujuan |
+|----|--------|
+| 1 | Mengimplementasikan algoritma kriptografi klasik dan modern |
+| 2 | Meningkatkan pemahaman mahasiswa terhadap keamanan data |
+| 3 | Mengintegrasikan teori kriptografi dengan Flutter |
+| 4 | Menyediakan media pembelajaran yang interaktif dan aplikatif |
 
 ---
 
 ## ⚙️ Fitur Utama
+
+### 🔐 Enkripsi & Dekripsi Teks
+| Algoritma | Keterangan |
+|----------|------------|
+| AES | Advanced Encryption Standard (Simetris) |
+| DES | Data Encryption Standard |
+| RSA | Kriptografi Asimetris |
+| Caesar | Pergeseran karakter berbasis kunci |
+| Vigenère | Enkripsi berbasis kata kunci |
+| Playfair | Substitusi pasangan huruf |
+| Hill | Operasi matriks modulo |
+| ROT13 | Pergeseran tetap 13 karakter |
+
+---
+
+### 📁 Enkripsi & Dekripsi File
+| Jenis File | Keterangan |
+|-----------|------------|
+| Dokumen | PDF, DOCX, TXT, dll |
+| Gambar | JPG, PNG |
+| Video | MP4, dll |
+| Lainnya | Semua format file |
+
+**Metode enkripsi file yang tersedia:**
+
+| Metode | Tipe |
+|-------|------|
+| AES | Simetris |
+| DES | Simetris |
+| XOR | Simetris |
+| Vigenère | Klasik |
+| Caesar | Klasik |
+
+---
+
+## 🗂️ Fitur Pendukung
 | Fitur | Deskripsi |
-|-------|------------|
-| 📁 **Kriptografi File** | Enkripsi dan dekripsi file menggunakan metode AES, DES (berbasis XOR), dan XOR Sederhana, dengan antarmuka pengguna yang modern dan profesional. |
-| 🔒 **AES Cipher** | Implementasi Advanced Encryption Standard (AES) untuk enkripsi dan dekripsi data teks. |
-| 🔑 **DES Cipher** | Implementasi Data Encryption Standard (DES) untuk enkripsi dan dekripsi data teks. |
-| 🔢 **RSA Cipher** | Implementasi algoritma Rivest-Shamir-Adleman (RSA) untuk enkripsi dan dekripsi asimetris data teks. |
-| 🔒 **Caesar Cipher** | Menggeser huruf berdasarkan key tertentu. |
-| 🔑 **Vigenère Cipher** | Menggunakan kata kunci untuk proses enkripsi dan dekripsi. |
-| 🔤 **Playfair Cipher** | Menggunakan matriks 5x5 untuk substitusi pasangan huruf. |
-| 🧮 **Hill Cipher** | Menggunakan operasi matriks dan inverse modulo 26. |
-| 🔁 **ROT13 Cipher** | Menggeser huruf sebanyak 13 posisi (simetris). |
-| 🗂️ **Penyimpanan Lokal (SQLite)** | Menyimpan hasil enkripsi secara offline. |
-| ☁️ **Firebase Integration** | Sinkronisasi data ke cloud (opsional). |
-| 🧭 **Curved Navigation Bar** | Navigasi modern dengan animasi interaktif. |
-| 🌈 **UI Modern & Profesional** | Desain yang bersih dan kontras dengan latar belakang terang, kotak input putih, dan aksen warna gelap-hijau gradien pada header. |
+|------|----------|
+| SQLite | Penyimpanan lokal offline |
+| Firebase | Sinkronisasi cloud (opsional) |
+| Curved Navigation Bar | Navigasi modern & animasi |
+| UI Modern | Bersih, responsif, profesional |
 
 ---
 
 ## 🧠 Arsitektur Aplikasi
-Struktur proyek diorganisasi dengan pendekatan modular agar mudah dikembangkan dan dikelola:
+| Aspek | Penjelasan |
+|------|------------|
+| Arsitektur | Modular Architecture |
+| Pemisahan | UI & Logic |
+| Skalabilitas | Mudah dikembangkan |
+| Maintenance | Mudah dipelihara |
+
+---
+
+## 🛠️ Teknologi yang Digunakan
+| Teknologi | Keterangan |
+|----------|------------|
+| Flutter | Framework UI |
+| Dart | Bahasa Pemrograman |
+| SQLite | Database lokal |
+| Firebase | Backend opsional |
+| Cryptography | Implementasi algoritma |
+
+---
+
+## 👤 Pengembang
+| Informasi | Detail |
+|----------|--------|
+| Nama | Defri Lugas Hidayat |
+| Program Studi | Teknik Informatika |
+| Universitas | Universitas Pelita Bangsa |
+
+---
+
+## 📄 Lisensi
+© 2026 **Defri Lugas Hidayat**
+
+Seluruh hak cipta dilindungi undang-undang.  
+Aplikasi **Encryption Apps** dikembangkan untuk keperluan **akademik dan pembelajaran**.  
+Dilarang menyalin, mendistribusikan, atau memodifikasi sebagian atau seluruh kode tanpa izin tertulis dari pemilik hak cipta.
+
+---
+
+⭐ Jangan lupa beri **star** jika repository ini bermanfaat!
